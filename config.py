@@ -1,0 +1,5 @@
+database="postgres"
+user="postgres"
+password="rootroot"
+host="127.0.0.1"
+port="5432"
