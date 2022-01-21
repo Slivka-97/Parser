@@ -23,7 +23,15 @@ class Articles(Base):
     data = Column(String)
 
 
-Base.metadata.create_all(engine)
+class Parser(Base):
+    __tablename__ = 'Parser'
+    id = Column(Integer, primary_key=True)
+    site_name = Column(String)
+    count_proc = Column(Integer)
+
+
+# Base.metadata.create_all(engine)
+
 
 name_mount = {
     "января": "01",
@@ -76,30 +84,34 @@ def get_date(data: str):
 
 next_page = True
 page = 1
-while next_page:
-    r = requests.get(f"https://bikepost.ru/index/page{page}/")
-    html = BS(r.content, 'html.parser')
+parser = session.query(Parser)
+for new_parser in parser:  # цикл для каждой записи в таблице базы данных
+    for i in range(new_parser.count_proc):  # цикл для каждого пока в текущей записи
+        while next_page:  # цикл для каждой страницы на сайте
+            req = requests.get(f"https://{new_parser.site_name}/index/page{page}/")
+            html = BS(req.content, 'html.parser')
 
-    max_page = html.find(class_='pagination').find_all('li')[9].text
-    max_page = max_page.replace("... ", "")
-    if max_page == page:
-        next_page = False
-    else:
-        page += 1
+            max_page = html.find(class_='pagination').find_all('li')[9].text
+            max_page = max_page.replace("... ", "")
+            if max_page == page:
+                next_page = False
+            else:
+                page += 1
 
-    t = html.find_all(class_="topic")
-    for el in t:
-        title = el.find(class_="title-topic")
-        author = el.find(class_="panel username")
-        no_correct_data = el.find(class_="panel username").find_next_sibling().find_next_sibling().text
-        if not no_correct_data[-1].isdigit():
-            no_correct_data = el.find(class_="panel username").find_next_sibling().text
+            topic = html.find_all(class_="topic")
+            for el in topic:
+                title = el.find(class_="title-topic")
+                author = el.find(class_="panel username")
+                no_correct_data = el.find(class_="panel username").find_next_sibling().find_next_sibling().text
+                if not no_correct_data[-1].isdigit():
+                    no_correct_data = el.find(class_="panel username").find_next_sibling().text
 
-        date = get_date(no_correct_data)
+                date = get_date(no_correct_data)
 
-        new_articles = session.query(Articles).filter(Articles.title == title.text, Articles.author == author.text,
-                                                      Articles.data == date).count()
-        if new_articles == 0:
-            art = Articles(title=title.text, author=author.text, data=date)
-            session.add(art)
-            session.commit()
+                new_articles = session.query(Articles).filter(Articles.title == title.text,
+                                                              Articles.author == author.text,
+                                                              Articles.data == date).count()
+                if new_articles == 0:
+                    art = Articles(title=title.text, author=author.text, data=date)
+                    session.add(art)
+                    session.commit()
