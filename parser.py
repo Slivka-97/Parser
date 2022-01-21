@@ -106,12 +106,14 @@ for new_parser in parser:  # цикл для каждой записи в таб
                 if not no_correct_data[-1].isdigit():
                     no_correct_data = el.find(class_="panel username").find_next_sibling().text
 
-                date = get_date(no_correct_data)
+                date = get_date(no_correct_data)  # получаем корректную дату
 
+                # устанавливаем отбор на нужную статью
                 new_articles = session.query(Articles).filter(Articles.title == title.text,
                                                               Articles.author == author.text,
                                                               Articles.data == date).count()
                 if new_articles == 0:
+                    # Если такой записи нет в базе данных, тогда добавляем
                     art = Articles(title=title.text, author=author.text, data=date)
                     session.add(art)
                     session.commit()
